@@ -1,0 +1,1379 @@
+---
+title: "ThesisFINAL"
+author: "jacob"
+date: "2026-10-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# VALIDATION DATASETS
+## library
+```{r}
+library(tidyverse)
+
+```
+
+## import independent runs
+```{r}
+# study design
+Validation_SD_1 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/Validation/Validation_SD_1.csv")
+
+Validation_SD_2 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/Validation/Validation_SD_2.csv")
+
+Validation_SD_3 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/Validation/Validation_SD_3.csv")
+
+# population type (p1/lwc)
+Validation_P1_1 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/Validation/Validation_P1_1.csv")
+
+Validation_P1_2 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/Validation/Validation_P1_2.csv")
+
+Validation_P1_3 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/Validation/Validation_P1_3.csv")
+
+# sampling unit (p2/gi)
+Validation_P2_1 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/Validation/Validation_P2_1.csv")
+
+Validation_P2_2 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/Validation/Validation_P2_2.csv")
+
+Validation_P2_3 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/Validation/Validation_P2_3.csv")
+
+```
+
+## clean and merge to form master sets
+```{r}
+# to lowercase column names and rename pred columns
+Validation_SD_1 <- Validation_SD_1 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_sd = pred)
+
+Validation_SD_2 <- Validation_SD_2 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_sd = pred)
+
+Validation_SD_3 <- Validation_SD_3 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_sd = pred)
+
+Validation_P1_1 <- Validation_P1_1 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_p1 = pred)
+
+Validation_P1_2 <- Validation_P1_2 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_p1 = pred)
+
+Validation_P1_3 <- Validation_P1_3 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_p1 = pred)
+
+Validation_P2_1 <- Validation_P2_1 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_p2 = pred)
+
+Validation_P2_2 <- Validation_P2_2 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_p2 = pred)
+
+Validation_P2_3 <- Validation_P2_3 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_p2 = pred)
+
+# merge them
+# safety check
+identical(Validation_SD_1$title , Validation_SD_2$title)
+identical(Validation_SD_2$title , Validation_SD_3$title)
+
+identical(Validation_P1_1$title , Validation_P1_2$title)
+identical(Validation_P1_2$title , Validation_P1_3$title)
+
+identical(Validation_P2_1$title , Validation_P2_2$title)
+identical(Validation_P2_2$title , Validation_P2_3$title)
+
+identical(Validation_SD_3$title , Validation_P1_1$title)
+
+# merge
+Validation_All_1 <- Validation_SD_1 %>%
+  mutate(pred_p1 = Validation_P1_1$pred_p1 ,
+         pred_p2 = Validation_P2_1$pred_p2)
+
+Validation_All_2 <- Validation_SD_2 %>%
+  mutate(pred_p1 = Validation_P1_2$pred_p1 ,
+         pred_p2 = Validation_P2_2$pred_p2)
+
+Validation_All_3 <- Validation_SD_3 %>%
+  mutate(pred_p1 = Validation_P1_3$pred_p1 ,
+         pred_p2 = Validation_P2_3$pred_p2)
+
+# more cleaning
+# recode multiple classifications in p1 of runs 2 and 3 as "mixed"
+Validation_All_1 <- Validation_All_1 %>%
+  mutate(across(c(population_1_lwc, pred_p1) ,
+                ~ case_when(str_detect(.x, ",")
+                            ~"mixed",
+                            TRUE ~ .x)))
+
+Validation_All_2 <- Validation_All_2 %>%
+  mutate(across(c(population_1_lwc, pred_p1) ,
+                ~ case_when(str_detect(.x, ",")
+                            ~"mixed",
+                            TRUE ~ .x)))
+
+Validation_All_3 <- Validation_All_3 %>%
+  mutate(across(c(population_1_lwc, pred_p1) ,
+                ~ case_when(str_detect(.x, ",")
+                            ~"mixed",
+                            TRUE ~ .x)))
+
+# make all predictions lowercase
+Validation_All_1 <- Validation_All_1 %>%
+  mutate(across(jg_1:pred_p2, str_to_lower))
+
+Validation_All_2 <- Validation_All_2 %>%
+  mutate(across(jg_1:pred_p2, str_to_lower))
+
+Validation_All_3 <- Validation_All_3 %>%
+  mutate(across(jg_1:pred_p2, str_to_lower))
+
+# remove the word "animals" from the ends
+Validation_All_1 <- Validation_All_1 %>%
+  mutate(pred_p1 = str_remove(pred_p1 , "animals$") %>%
+         str_squish())
+
+Validation_All_2 <- Validation_All_2 %>%
+  mutate(pred_p1 = str_remove(pred_p1 , "animals$") %>%
+         str_squish())
+
+Validation_All_3 <- Validation_All_3 %>%
+  mutate(pred_p1 = str_remove(pred_p1 , "animals$") %>%
+         str_squish())
+
+# remove the (?) from some values
+Validation_All_1 <- Validation_All_1 %>%
+  mutate(across(jg_1:pred_p2 , ~ str_remove(.x , "\\s*\\(\\?\\)$")))
+
+Validation_All_2 <- Validation_All_2 %>%
+  mutate(across(jg_1:pred_p2 , ~ str_remove(.x , "\\s*\\(\\?\\)$")))
+
+Validation_All_3 <- Validation_All_3 %>%
+  mutate(across(jg_1:pred_p2 , ~ str_remove(.x , "\\s*\\(\\?\\)$")))
+
+# add hyphens
+Validation_All_1 <- Validation_All_1 %>%
+  mutate(across(jg_1:pred_p2 , ~ str_replace_all(.x , " " , "-")))
+
+Validation_All_2 <- Validation_All_2 %>%
+  mutate(across(jg_1:pred_p2 , ~ str_replace_all(.x , " " , "-")))
+
+Validation_All_3 <- Validation_All_3 %>%
+  mutate(across(jg_1:pred_p2 , ~ str_replace_all(.x , " " , "-")))
+
+# remaining cleaning
+# remove extra hyphens, convert empty values to NA
+Validation_All_1 <- Validation_All_1 %>%
+  mutate(across(jg_1:pred_p2 , ~ str_remove(.x , "-+$")))
+
+Validation_All_1 <- Validation_All_1 %>%
+  mutate(across(jg_1:pred_p2 , ~ na_if(.x , "")))
+
+Validation_All_2 <- Validation_All_2 %>%
+  mutate(across(jg_1:pred_p2 , ~ str_remove(.x , "-+$")))
+
+Validation_All_2 <- Validation_All_2 %>%
+  mutate(across(jg_1:pred_p2 , ~ na_if(.x , "")))
+
+Validation_All_3 <- Validation_All_3 %>%
+  mutate(across(jg_1:pred_p2 , ~ str_remove(.x , "-+$")))
+
+Validation_All_3 <- Validation_All_3 %>%
+  mutate(across(jg_1:pred_p2 , ~ na_if(.x , "")))
+
+# make human classifications lowercase and remove extra spacing
+Validation_All_1 <- Validation_All_1 %>%
+  mutate(across(jg_1:ob_2 , ~str_trim(str_to_lower(.x))))
+
+Validation_All_2 <- Validation_All_2 %>%
+  mutate(across(jg_1:ob_2 , ~str_trim(str_to_lower(.x))))
+
+Validation_All_3 <- Validation_All_3 %>%
+  mutate(across(jg_1:ob_2 , ~str_trim(str_to_lower(.x))))
+
+```
+
+
+# FULL SCREENING DATASETS
+## library
+```{r}
+library(tidyverse)
+
+```
+
+## import independent runs
+```{r}
+# study design
+FullScreening_SD <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/FullScreening/FullScreening_SD.csv")
+
+FullScreening_SD_2 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/FullScreening/FullScreening_SD_2.csv")
+
+FullScreening_SD_3 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/FullScreening/FullScreening_SD_3.csv")
+
+# population type (p1/lwc)
+FullScreening_P1 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/FullScreening/FullScreening_P1.csv")
+
+FullScreening_P1_2 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/FullScreening/FullScreening_P1_2.csv")
+
+FullScreening_P1_3 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/FullScreening/FullScreening_P1_3.csv")
+
+# sampling unit (p2/gi)
+FullScreening_P2 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/FullScreening/FullScreening_P2.csv")
+
+FullScreening_P2_2 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/FullScreening/FullScreening_P2_2.csv")
+
+FullScreening_P2_3 <- read.csv("C:/Users/jacob/OneDrive/Desktop/Screening Datasets/FullScreening/FullScreening_P2_3.csv")
+
+```
+
+## clean and merge to form master sets
+```{r}
+# to lowercase column names and rename pred columns
+FullScreening_SD <- FullScreening_SD %>%
+  rename_with(str_to_lower)
+
+FullScreening_P1 <- FullScreening_P1 %>%
+  rename_with(str_to_lower)
+
+FullScreening_P2 <- FullScreening_P2 %>%
+  rename_with(str_to_lower)
+
+FullScreening_SD_2 <- FullScreening_SD_2 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_sd = pred)
+
+FullScreening_P1_2 <- FullScreening_P1_2 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_p1 = pred)
+
+FullScreening_P2_2 <- FullScreening_P2_2 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_p2 = pred)
+
+FullScreening_SD_3 <- FullScreening_SD_3 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_sd = pred)
+
+FullScreening_P1_3 <- FullScreening_P1_3 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_p1 = pred)
+
+FullScreening_P2_3 <- FullScreening_P2_3 %>%
+  rename_with(str_to_lower) %>%
+  rename(pred_p2 = pred)
+
+# recode predictions with multiple groups into 'multiple' option
+FullScreening_P1 <- FullScreening_P1 %>%
+  mutate(pred = case_when(
+    str_detect(pred, ",")
+    ~"mixed",
+    TRUE ~ pred
+  ))
+
+## merge into FullScreening_All
+# make sure the studies line up
+identical(FullScreening_SD$title, FullScreening_P1$title)
+identical(FullScreening_SD$title, FullScreening_P2$title)
+
+# add prediction columns from P1 and P2 to SD, and rename pred columns
+FullScreening_All <- FullScreening_SD %>%
+  rename(pred_sd = pred) %>%
+  mutate(
+    pred_p1 = FullScreening_P1$pred,
+    pred_p2 = FullScreening_P2$pred
+  )
+
+# make all predictions lowercase
+FullScreening_All <- FullScreening_All %>%
+  mutate(across(pred_sd:pred_p2, str_to_lower))
+
+# make all column names lowercase
+FullScreening_All <- FullScreening_All %>%
+  rename_with(tolower)
+
+# remove the word "animals" from the ends
+FullScreening_All <- FullScreening_All %>%
+  mutate(pred_p1 = str_remove(pred_p1 , "animals$") %>%
+         str_squish())
+
+# merge into FullScreening_All_2 and FullScreening_All_3
+# safety check
+identical(FullScreening_P1$title , FullScreening_P1_2$title)
+identical(FullScreening_P1_2$title , FullScreening_P1_3$title)
+
+identical(FullScreening_P2$title , FullScreening_P2_2$title)
+identical(FullScreening_P2_2$title , FullScreening_P2_3$title)
+
+identical(FullScreening_SD$title , FullScreening_SD_2$title)
+identical(FullScreening_SD_2$title , FullScreening_SD_3$title)
+
+identical(FullScreening_SD_3$title , FullScreening_P1$title)
+
+# merge
+FullScreening_All_2 <- FullScreening_SD_2 %>%
+  mutate(pred_p1 = FullScreening_P1_2$pred_p1 ,
+         pred_p2 = FullScreening_P2_2$pred_p2)
+
+FullScreening_All_3 <- FullScreening_SD_3 %>%
+  mutate(pred_p1 = FullScreening_P1_3$pred_p1 ,
+         pred_p2 = FullScreening_P2_3$pred_p2)
+
+# recode multiple classifications in p1 of runs 2 and 3 as "mixed"
+FullScreening_All_2 <- FullScreening_All_2 %>%
+  mutate(pred_p1 = case_when(
+    str_detect(pred_p1, ",")
+    ~"mixed",
+    TRUE ~ pred_p1
+  ))
+
+FullScreening_All_3 <- FullScreening_All_3 %>%
+  mutate(pred_p1 = case_when(
+    str_detect(pred_p1, ",")
+    ~"mixed",
+    TRUE ~ pred_p1
+  ))
+
+# make all predictions lowercase
+FullScreening_All_2 <- FullScreening_All_2 %>%
+  mutate(across(pred_sd:pred_p2, str_to_lower))
+
+FullScreening_All_3 <- FullScreening_All_3 %>%
+  mutate(across(pred_sd:pred_p2, str_to_lower))
+
+# remove the word "animals" from the ends
+FullScreening_All_2 <- FullScreening_All_2 %>%
+  mutate(pred_p1 = str_remove(pred_p1 , "animals$") %>%
+         str_squish())
+
+FullScreening_All_3 <- FullScreening_All_3 %>%
+  mutate(pred_p1 = str_remove(pred_p1 , "animals$") %>%
+         str_squish())
+
+```
+
+
+# ALLUVIAL PLOT (FIGURE X)
+## library
+```{r}
+library(tidyverse)
+library(ggalluvial)
+library(ggh4x)
+
+```
+
+## make the plot
+```{r}
+# data for the plot
+alluvial_by_design <- FullScreening_All %>%
+  count(pred_sd , pred_p1 , pred_p2 , name = "n") %>%
+  mutate(pred_sd = factor(pred_sd , levels = c(
+    "cross-sectional" ,
+    "cohort" ,
+    "case-control" ,
+    "unknown")) ,
+    pred_p1 = factor(pred_p1 , levels = c(
+      "livestock" ,
+      "companion" ,
+      "captive" ,
+      "wild" ,
+      "mixed" ,
+      "unknown")) ,
+    pred_p2 = factor(pred_p2 , levels = c(
+      "individual" ,
+      "group" ,
+      "unknown")))
+
+# create the plot
+alluvial_by_design_plot <- ggplot(alluvial_by_design , aes(
+  axis1 = pred_p1 ,
+  axis2 = pred_p2 ,
+  y = n)) +
+  geom_flow(aes(fill = pred_p1) ,
+            width = 0.25 ,
+            alpha = 0.8) +
+  geom_stratum(width = 0.25 ,
+               fill = "white" ,
+               color = "grey" ,
+               linewidth = 0.4) +
+  geom_text(stat = "stratum" ,
+            aes(label = str_to_sentence(after_stat(stratum))) ,
+            size = 3) +
+  scale_fill_manual(values = c("livestock" = "#c98276" ,
+                               "companion" = "#c18a35" ,
+                               "captive" = "#6b8e23" ,
+                               "wild" = "#5b8fb9" ,
+                               "mixed" = "#9a72ac" ,
+                               "unknown" = "#5b837d") ,
+                    labels = str_to_sentence) +
+  scale_x_discrete(limits = c(
+    "Population type" ,
+    "Sampling unit") ,
+    expand = c(0.1 , 0.1)) +
+  facet_wrap(~ pred_sd ,
+             ncol = 2 ,
+             scales = "free_y" ,
+             labeller = labeller(pred_sd = c("cross-sectional" = "a) Cross-sectional" ,
+                                             "cohort" = "b) Cohort" ,
+                                             "case-control" = "c) Case-control" ,
+                                             "unknown" = "d) Unknown"))) +
+  facetted_pos_scales(y = list(pred_sd == "cross-sectional" ~ scale_y_continuous(breaks = seq(0 , 3000 , 1000)) ,
+                               pred_sd == "cohort" ~ scale_y_continuous(breaks = seq(0 , 750 , 250)) ,
+                               pred_sd == "case-control" ~ scale_y_continuous(breaks = seq(0 , 75 , 25)) ,
+                               pred_sd == "unknown" ~ scale_y_continuous(breaks = seq(0 , 4000 , 1000)))) +
+  labs(x = NULL ,
+       y = "Number of studies" ,
+       fill = "Population type") +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.major.x = element_blank() ,
+        panel.grid.minor = element_blank() ,
+        strip.text = element_text(
+          face = "bold" ,
+          size = 11) ,
+        axis.text.x = element_text(
+          face = "bold" ,
+          size = 8) ,
+        legend.position = "bottom" ,
+        panel.spacing = unit(1.5 , "cm"))
+
+alluvial_by_design_plot
+
+# save for better dimensions
+ggsave(
+  "alluvial_FINAL.png" ,
+  path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures" ,
+  plot = alluvial_by_design_plot ,
+  width = 10 ,
+  height = 9 ,
+  units = "in" ,
+  dpi = 300)
+
+```
+
+
+# COUNTS TABLE HUMAN/LLM IN VALIDATION SET FOR STUDY DESIGN (TABLE Xa)
+## library
+```{r}
+library(tidyverse)
+library(flextable)
+
+```
+
+## make the table
+```{r}
+# agreement counts
+agreement_sd <- Validation_All_1 %>%
+  group_by(consensus) %>%
+  summarise(human_n = n() , agreement_n = sum(consensus == pred_sd , na.rm = TRUE) ,
+            agreement_percent = agreement_n / human_n * 100 , .groups = "drop") %>%
+  mutate(Agreement = paste0(agreement_n , " (" , round(agreement_percent , 1) , "%)")) %>%
+  select(consensus, Agreement) %>%
+  rename(`Study design` = consensus)
+
+# counts and percentages table
+validation_counts_table_sd315 <- bind_rows(
+  Validation_All_1 %>%
+    count(consensus , name = "n") %>%
+    mutate(percent = n / sum(n) * 100 ,
+           source = "Human") %>%
+    rename(`Study design` = consensus) ,
+  Validation_All_1 %>%
+    count(pred_sd , name = "n") %>%
+    mutate(percent = n / sum(n) * 100 ,
+           source = "LLM") %>%
+    rename(`Study design` = pred_sd) ,
+  FullScreening_All %>%
+    count(pred_sd , name = "n") %>%
+    mutate(percent = n / sum(n) * 100 , source = "Screening") %>%
+    rename(`Study design` = pred_sd)) %>%
+  mutate(value = paste0(n , " (" ,  round(percent , 1) , "%)")) %>%
+  select(`Study design` , source , value) %>%
+  pivot_wider(names_from = source , values_from = value) %>%
+  left_join(agreement_sd , by = "Study design") %>%
+  select(`Study design` , Human , LLM , Agreement , Screening)
+
+
+validation_counts_table_sd315
+
+# define n = 
+n_validationset315 <- nrow(Validation_All_1)
+n_fullscreeningall <- nrow(FullScreening_All)
+
+# format it into publishable style
+validation_counts_table_sd315_3 <- validation_counts_table_sd315 %>%
+  mutate(`Study design` = str_to_sentence(`Study design`)) %>%
+  flextable() %>%
+  add_header_row(values = c("" , paste0("Validation Set\n(n = " , n_validationset315 , ")") , paste0("Screening Set\n(n = " , n_fullscreeningall , ")")) ,
+                 colwidths = c(1 , 3 , 1) ,
+                 top = TRUE) %>%
+  theme_booktabs() %>%
+  bold(part = "header") %>%
+  align(j = 1 , align = "left" , part = "all") %>%
+  align(j = 2:5 , align = "center" , part = "all") %>%
+  autofit()
+
+validation_counts_table_sd315_3
+
+save_as_docx(validation_counts_table_sd315_3 , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/validation_counts_table_sd_FINAL.docx")
+save_as_image(validation_counts_table_sd315_3 , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/validation_counts_table_sd_FINAL.png")
+
+```
+
+
+# COUNTS TABLE HUMAN/LLM IN VALIDATION SET FOR P1 and P2 (TABLE Xb)
+## library
+```{r}
+library(tidyverse)
+library(flextable)
+
+```
+
+## make the table
+```{r}
+# subset of population
+Validation_Pop_1 <- Validation_All_1 %>%
+  filter(consensus != "unknown")
+
+# population type (p1) section
+# agreement counts
+agreement_p1 <- Validation_Pop_1 %>%
+  group_by(population_1_lwc) %>%
+  summarise(human_n = n() , agreement_n = sum(population_1_lwc == pred_p1) ,
+            agreement_percent = agreement_n / human_n * 100 , .groups = "drop") %>%
+  mutate(Agreement = paste0(agreement_n , " (" , round(agreement_percent , 1) , "%)")) %>%
+  select(population_1_lwc, Agreement) %>%
+  rename(Category = population_1_lwc)
+
+# p1 counts
+table_p1 <- bind_rows(
+  Validation_Pop_1 %>%
+    count(population_1_lwc , name = "n") %>%
+    mutate(percent = n / sum(n) * 100 , source = "Human") %>%
+    rename(Category = population_1_lwc) ,
+  Validation_Pop_1 %>%
+    count(pred_p1 , name = "n") %>%
+    mutate(percent = n / sum(n) * 100 , source = "LLM") %>%
+    rename(Category = pred_p1) ,
+  FullScreening_All %>%
+    filter(pred_sd != "unknown") %>%
+    count(pred_p1 , name = "n") %>%
+    mutate(percent = n / sum(n) * 100 , source = "Screening") %>%
+    rename(Category = pred_p1)) %>%
+  mutate(value = paste0(n , " (" , round(percent , 1) , "%)")) %>%
+  select(Category , source , value) %>%
+  pivot_wider(names_from = source , values_from = value) %>%
+  left_join(agreement_p1 , by = "Category") %>%
+  select(Category , Human , LLM , Agreement , Screening)
+
+# sampling unit (p2) section
+# agreement counts
+agreement_p2 <- Validation_Pop_1 %>%
+  group_by(population_2_gi) %>%
+  summarise(human_n = n() , agreement_n = sum(population_2_gi == pred_p2) ,
+            agreement_percent = agreement_n / human_n * 100 , .groups = "drop") %>%
+  mutate(Agreement = paste0(agreement_n , " (" , round(agreement_percent , 1) , "%)")) %>%
+  select(population_2_gi, Agreement) %>%
+  rename(Category = population_2_gi)
+
+# p2 counts
+table_p2 <- bind_rows(
+  Validation_Pop_1 %>%
+    count(population_2_gi , name = "n") %>%
+    mutate(percent = n / sum(n) * 100 , source = "Human") %>%
+    rename(Category = population_2_gi) ,
+  Validation_Pop_1 %>%
+    count(pred_p2 , name = "n") %>%
+    mutate(percent = n / sum(n) * 100 , source = "LLM") %>%
+    rename(Category = pred_p2) ,
+  FullScreening_All %>%
+    filter(pred_sd != "unknown") %>%
+    count(pred_p2 , name = "n") %>%
+    mutate(percent = n / sum(n) * 100 , source = "Screening") %>%
+    rename(Category = pred_p2)) %>%
+  mutate(value = paste0(n , " (" , round(percent , 1) , "%)")) %>%
+  select(Category , source , value) %>%
+  pivot_wider(names_from = source , values_from = value) %>%
+  left_join(agreement_p2 , by = "Category") %>%
+  select(Category , Human , LLM , Agreement , Screening)
+
+
+# combine p1 and p2 tables into one
+validation_counts_table_p1p2315 <- bind_rows(
+  tibble(Category = "Population type" ,
+         Human = NA_character_ ,
+         LLM = NA_character_ ,
+         Agreement = NA_character_ ,
+         Screening = NA_character_) ,
+  table_p1 ,
+  tibble(Category = "Sampling unit" ,
+         Human = NA_character_ ,
+         LLM = NA_character_ ,
+         Agreement = NA_character_ ,
+         Screening = NA_character_) ,
+  table_p2) %>%
+  mutate(across(c(Human , LLM , Agreement , Screening) ,
+                ~ if_else(Category == "unknown" & is.na(.x) , "N/A" , .x)))
+
+
+# define n =
+n_validation_pop <- nrow(Validation_Pop_1)
+
+n_screening_pop <- FullScreening_All %>%
+  filter(pred_sd != "unknown") %>%
+  nrow()
+
+section_rows <- which(
+  validation_counts_table_p1p2315$Category %in% c("Population type" , "Sampling unit"))
+
+
+# format into publishable style
+validation_counts_table_p1p2315_2 <- validation_counts_table_p1p2315 %>%
+  mutate(Category = str_to_sentence(Category)) %>%
+  flextable() %>%
+  add_header_row(
+    values = c("" , paste0("Validation Set\n(n = " , n_validation_pop , ")") ,
+               paste0("Screening Set\n(n = " , n_screening_pop , ")")) ,
+    colwidths = c(1 , 3 , 1) , top = TRUE) %>%
+  theme_booktabs() %>%
+  bold(part = "header") %>%
+  align(j = 1 , align = "left" , part = "all") %>%
+  align(j = 2:5 , align = "center" , part = "all") %>%
+  autofit()
+
+# merge section-heading rows across columns
+for (i in section_rows) {
+  validation_counts_table_p1p2315_2 <- validation_counts_table_p1p2315_2 %>%
+    merge_at(i = i , j = 1:5 , part = "body")
+}
+
+# bold and align headings
+validation_counts_table_p1p2315_2 <- validation_counts_table_p1p2315_2 %>%
+  bold(i = section_rows , part = "body") %>%
+  align(i = section_rows , align = "left" , part = "body")
+
+validation_counts_table_p1p2315_2
+
+save_as_docx(validation_counts_table_p1p2315_2 , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/validation_counts_table_p1p2_FINAL.docx")
+save_as_image(validation_counts_table_p1p2315_2 , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/validation_counts_table_p1p2_FINAL.png")
+
+```
+
+
+# BAR CHARTS FOR RELATIONSHIP BETWEEN STUDY DESIGN AND POPULATION TYPE (FIGURES 1a and 1b)
+## library
+```{r}
+library(tidyverse)
+library(scales)
+
+```
+
+## setup
+```{r}
+# levels and colors for bar charts
+sd_levels_figure1 <- c("cross-sectional" ,
+                       "cohort" ,
+                       "case-control")
+
+p1_levels_figure1 <- c("livestock" ,
+                       "companion" ,
+                       "captive" ,
+                       "wild" ,
+                       "mixed")
+
+p1_colors_figure1 <- c("livestock"  = "#5B8E7D" ,
+                       "companion"  = "#8EB69B" ,
+                       "captive"    = "#D6C179" ,
+                       "wild"       = "#C98276" ,
+                       "mixed"      = "#8A7FA8")
+
+sd_colors_figure1 <- c("cross-sectional" = "#AABBA0" ,
+                       "cohort"           = "#9ACD32" ,
+                       "case-control"     = "#698B22")
+
+```
+
+## population type (p1) within each study design (figure 1a)
+```{r}
+# data for the chart
+figure1a_data <- FullScreening_All %>%
+  filter(pred_sd %in% sd_levels_figure1 , 
+         pred_p1 %in% p1_levels_figure1) %>%
+  count(pred_sd , pred_p1 , name = "n") %>%
+  complete(pred_sd = sd_levels_figure1 ,
+           pred_p1 = p1_levels_figure1 ,
+           fill = list(n = 0)) %>%
+  group_by(pred_sd) %>%
+  mutate(total_n = sum(n) , percent = n / total_n * 100) %>%
+  ungroup() %>%
+  mutate(pred_sd = factor(pred_sd , levels = sd_levels_figure1) ,
+         pred_p1 = factor(pred_p1 , levels = p1_levels_figure1))
+
+# extract n for each study design
+figure1a_n <- figure1a_data %>%
+  distinct(pred_sd , total_n)
+
+# plot it
+figure1a <- ggplot(figure1a_data , aes(x = pred_sd , y = percent , fill = pred_p1)) +
+  geom_col(position = position_dodge(width = 0.8) , width = 0.7) +
+  scale_fill_manual(values = p1_colors_figure1 , breaks = p1_levels_figure1 , labels = c("Livestock" ,
+                                                                                           "Companion" ,
+                                                                                           "Captive" ,
+                                                                                           "Wild" ,
+                                                                                           "Mixed")) +
+  scale_x_discrete(labels = c("cross-sectional" = "Cross-sectional" ,
+                              "cohort" = "Cohort" ,
+                              "case-control" = "Case-control")) +
+  scale_y_continuous(breaks = seq(0 , 60 , by = 10) ,
+                     labels = \(x) paste0(x , "%") ,
+                     expand = expansion(mult = c(0 , 0.05))) +
+  labs(x = "Study design" ,
+       y = "Percentage of studies" ,
+       fill = "Population type") +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.major.x = element_blank() ,
+        panel.grid.minor = element_blank() ,
+        axis.title = element_text(size = 11) ,
+        axis.text = element_text(size = 10 , color = "black") ,
+        axis.text.x = element_text(face = "bold") ,
+        legend.position = "bottom" ,
+        legend.title = element_text(face = "bold") ,
+        legend.box.margin = margin(t = 5))
+
+figure1a
+
+# save it nicely
+ggsave("barchart_FINAL.png" ,
+       path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures" ,
+       plot = figure1a ,
+       width = 8 ,
+       height = 6 ,
+       units = "in" ,
+       dpi = 300)
+
+# get percentages for results section text
+FullScreening_All %>%
+  filter(pred_sd != "unknown" , pred_p1 != "unknown") %>%
+  count(pred_sd , pred_p1) %>%
+  group_by(pred_sd) %>%
+  mutate(percent = round(n / sum(n) * 100 , 1)) %>%
+  arrange(pred_sd , desc(percent))
+
+```
+
+## study design within each population type (p1) (figure 1b)
+```{r}
+# data for the chart
+figure1b_data <- FullScreening_All %>%
+  filter(pred_sd %in% sd_levels_figure1 ,
+         pred_p1 %in% p1_levels_figure1) %>%
+  count(pred_p1 , pred_sd , name = "n") %>%
+  complete(pred_p1 = p1_levels_figure1 ,
+           pred_sd = sd_levels_figure1 ,
+           fill = list(n = 0)) %>%
+  mutate(pred_p1 = factor(pred_p1 , levels = p1_levels_figure1) ,
+         pred_sd = factor(pred_sd , levels = sd_levels_figure1))
+
+# n =
+figure1b_n <- sum(figure1b_data$n)
+
+# plot it
+figure1b <- ggplot(figure1b_data , aes(x = pred_p1 , y = n , fill = pred_sd)) +
+  geom_col(position = "fill" , width = 0.7) +
+  scale_fill_manual(values = sd_colors_figure1 , breaks = sd_levels_figure1 , labels = c("Cross-sectional" ,
+                                                                                                 "Cohort" ,
+                                                                                                 "Case-control")) +
+  scale_x_discrete(labels = c("livestock" = "Livestock" ,
+                              "companion" = "Companion" ,
+                              "captive" = "Captive" ,
+                              "wild" = "Wild" ,
+                              "mixed" = "Mixed")) +
+  scale_y_continuous(breaks = c(0 , 0.25 , 0.50 , 0.75 , 1) ,
+                     labels = percent_format() ,
+                     expand = expansion(mult = c(0, 0))) +
+  labs(x = "Population type" ,
+       y = "Percentage of studies" ,
+       fill = "Study design") +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.major.x = element_blank() ,
+        panel.grid.minor = element_blank() ,
+        axis.title = element_text(size = 11) ,
+        axis.text = element_text(size = 10 , color = "black") ,
+        axis.text.x = element_text(angle = 30 , hjust = 1) ,
+        legend.position = "bottom" ,
+        legend.title = element_text(face = "bold") ,
+        legend.box.margin = margin(t = 5))
+
+figure1b
+
+# save it nicely
+ggsave("stacked_barchart_FINAL.png" ,
+       path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures" ,
+       plot = figure1b ,
+       width = 8 ,
+       height = 6 ,
+       units = "in" ,
+       dpi = 300)
+
+
+# get percentages for results section
+FullScreening_All %>%
+  filter(pred_sd != "unknown" , pred_p1 != "unknown") %>%
+  count(pred_p1 , pred_sd) %>%
+  group_by(pred_p1) %>%
+  mutate(percent = round(n / sum(n) * 100 , 1)) %>%
+  arrange(pred_p1 , desc(percent))
+
+```
+
+
+# YEARS TABLE (TABLE X)
+## library
+```{r}
+library(tidyverse)
+library(flextable)
+
+```
+
+## data for the table
+```{r}
+# study design section
+years_table_sd <- FullScreening_All %>%
+  filter(year %in% c(2019 , 2025)) %>%
+  count(year , pred_sd , name = "n") %>%
+  group_by(year) %>%
+  mutate(percent = n / sum(n) * 100 , value = paste0(n , " (" , round(percent , 1) , "%)")) %>%
+  ungroup() %>%
+  transmute(Section = "Study design" , Category = case_when(pred_sd == "cross-sectional" ~ "Cross-sectional" ,
+                                                            pred_sd == "cohort" ~ "Cohort" ,
+                                                            pred_sd == "case-control" ~ "Case-control" ,
+                                                            pred_sd == "unknown" ~ "Unknown" ,
+                                                            TRUE ~ pred_sd) ,
+            year , value , row_order = case_when(Category == "Cross-sectional" ~ 1 ,
+                                                 Category == "Cohort" ~ 2 ,
+                                                 Category == "Case-control" ~ 3 ,
+                                                 Category == "Unknown" ~ 4 ,
+                                                 TRUE ~ 99))
+
+# population type (p1) section
+years_table_p1 <- FullScreening_All %>%
+  filter(year %in% c(2019 , 2025)) %>%
+  count(year , pred_p1 , name = "n") %>%
+  group_by(year) %>%
+  mutate(percent = n / sum(n) * 100 , value = paste0(n , " (" , round(percent , 1) , "%)")) %>%
+  ungroup() %>%
+  transmute(Section = "Population type" , Category = case_when(pred_p1 == "livestock" ~ "Livestock" ,
+                                                               pred_p1 == "companion" ~ "Companion" ,
+                                                               pred_p1 == "captive" ~ "Captive" ,
+                                                               pred_p1 == "wild" ~ "Wild" ,
+                                                               pred_p1 == "mixed" ~ "Mixed" ,
+                                                               pred_p1 == "unknown" ~ "Unknown" ,
+                                                               TRUE ~ pred_p1) ,
+            year , value , row_order = case_when(Category == "Livestock" ~ 1 ,
+                                                 Category == "Companion" ~ 2 ,
+                                                 Category == "Captive" ~ 3 ,
+                                                 Category == "Wild" ~ 4 ,
+                                                 Category == "Mixed" ~ 5 ,
+                                                 Category == "Unknown" ~ 6 ,
+                                                 TRUE ~ 99))
+
+# sampling unit (p2) section
+years_table_p2 <- FullScreening_All %>%
+  filter(year %in% c(2019 , 2025)) %>%
+  count(year , pred_p2 , name = "n") %>%
+  group_by(year) %>%
+  mutate(percent = n / sum(n) * 100 , value = paste0(n , " (" , round(percent , 1) , "%)")) %>%
+  ungroup() %>%
+  transmute(Section = "Sampling unit" , Category = case_when(pred_p2 == "individual" ~ "Individual" ,
+                                                             pred_p2 == "group" ~ "Group" ,
+                                                             pred_p2 == "unknown" ~ "Unknown" ,
+                                                             TRUE ~ pred_p2) ,
+            year , value , row_order = case_when(Category == "Individual" ~ 1 ,
+                                                 Category == "Group" ~ 2 ,
+                                                 Category == "Unknown" ~ 3 ,
+                                                 TRUE ~ 99))
+
+# combine into table
+years_table <- bind_rows(years_table_sd , years_table_p1 , years_table_p2) %>%
+  mutate(section_order = case_when(Section == "Study design" ~ 1 ,
+                                   Section == "Population type" ~ 2 ,
+                                   Section == "Sampling unit" ~ 3)) %>%
+  arrange(section_order , row_order , year) %>%
+  pivot_wider(names_from = year , values_from = value) %>%
+  rename(`2019, n (%)` = `2019` , `2025, n (%)` = `2025`) %>%
+  arrange(section_order , row_order)
+
+years_table
+
+# create headings
+years_table_headings <- bind_rows(tibble(Section = "Study design" , Category = NA_character_ , `2019, n (%)` = NA_character_ , `2025, n (%)` = NA_character_ , section_order = 1 , row_order = 0) ,
+                                  years_table %>%
+                                    filter(Section == "Study design") ,
+                                  tibble(Section = "Population type" , Category = NA_character_ , `2019, n (%)` = NA_character_ , `2025, n (%)` = NA_character_ , section_order = 2 , row_order = 0) ,
+                                  years_table %>%
+                                    filter(Section == "Population type") ,
+                                  tibble(Section = "Sampling unit" , Category = NA_character_ , `2019, n (%)` = NA_character_ , `2025, n (%)` = NA_character_ , section_order = 3 , row_order = 0) ,
+                                  years_table %>%
+                                    filter(Section == "Sampling unit")) %>%
+  mutate(Characteristic = if_else(row_order == 0 , Section , Category)) %>%
+  select(Characteristic , `2019, n (%)` , `2025, n (%)`)
+
+section_rows <- which(years_table_headings$Characteristic %in% c("Study design" , "Population type" , "Sampling unit"))
+
+# sample sizes for years
+n_2019 <- FullScreening_All %>%
+  filter(year == 2019) %>%
+  nrow()
+
+n_2025 <- FullScreening_All %>%
+  filter(year == 2025) %>%
+  nrow()
+
+```
+
+## format into publishable table
+```{r}
+# flextable
+years_flextable <- years_table_headings %>%
+  flextable() %>%
+  set_header_labels(Characteristic = "" , `2019, n (%)` = "n (%)" , `2025, n (%)` = "n (%)") %>%
+  add_header_row(values = c("" , paste0("2019\n(n = " , n_2019 , ")") ,
+               paste0("2025\n(n = " , n_2025 , ")")) ,
+    colwidths = c(1 , 1 , 1) , top = TRUE) %>%
+  theme_booktabs() %>%
+  bold(part = "header") %>%
+  align(j = 1 , align = "left" , part = "all") %>%
+  align(j = 2:3 , align = "center" , part = "all") %>%
+  autofit()
+
+# merge section-heading rows across columns
+for (i in section_rows) {
+  years_flextable <- years_flextable %>%
+    merge_at(i = i , j = 1:3 , part = "body")
+}
+
+# bold and align headings
+years_flextable <- years_flextable %>%
+  bold(i = section_rows , part = "body") %>%
+  align(i = section_rows , align = "left" , part = "body")
+
+years_flextable
+
+save_as_docx(years_flextable , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/years_table_FINAL.docx")
+save_as_image(years_flextable , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/years_table_FINAL.png")
+
+```
+
+# PERFORMANCE METRICS ACROSS THREE RUNS IN VALIDATION SET (SUPPLEMENTARY TABLE X)
+## library
+```{r}
+library(tidyverse)
+library(yardstick)
+library(flextable)
+library(officer)
+
+```
+
+## function for metrics on one run
+```{r}
+calculate_validation_metrics <- function(data , truth_col , pred_col , characteristic_name) {
+  analysis_data <- data %>%
+    filter(!is.na(.data[[truth_col]]))
+  
+  n_validation <- nrow(analysis_data)
+  
+  truth <- analysis_data[[truth_col]]
+  estimate <- analysis_data[[pred_col]]
+  
+  classes <- unique(truth)
+  
+  levels_all <- union(unique(truth) , unique(estimate))
+  
+  truth_factor <- factor(truth , levels = levels_all)
+  
+  estimate_factor <- factor(estimate , levels = levels_all)
+  
+  # overall metrics
+  overall <- tibble(Characteristic = characteristic_name , n = n_validation , Class = "Overall" , Metric = c("Cohen's kappa" , "Accuracy") ,
+                    Value = c(kap_vec(truth = truth_factor , estimate = estimate_factor , weighting = "none") ,
+                              accuracy_vec(truth = truth_factor , estimate = estimate_factor)))
+  
+  # class-specific metrics
+  class_metrics <- map_dfr(classes , function(cls) {
+    
+    truth_binary <- factor(if_else(truth == cls, "yes" , "no") , levels = c("yes" , "no"))
+    
+    estimate_binary <- factor(if_else(estimate == cls, "yes" , "no") , levels = c("yes" , "no"))
+    
+    tibble(Characteristic = characteristic_name , n = n_validation , Class = cls , Metric = c("Sensitivity" , "Specificity") ,
+           Value = c(sens_vec(truth = truth_binary , estimate = estimate_binary , event_level = "first") ,
+                     spec_vec(truth = truth_binary , estimate = estimate_binary , event_level = "first")))
+  })
+  
+  bind_rows(overall , class_metrics)
+}
+
+
+# function for all metrics on one run
+
+calculate_one_run <- function(data , run_name) {
+  bind_rows(calculate_validation_metrics(data = data , truth_col = "consensus" , pred_col = "pred_sd" , characteristic_name = "Study design") ,
+            calculate_validation_metrics(data = data , truth_col = "population_1_lwc" , pred_col = "pred_p1" , characteristic_name = "Population type") ,
+            calculate_validation_metrics(data = data , truth_col = "population_2_gi" , pred_col = "pred_p2" , characteristic_name = "Sampling unit")) %>%
+    mutate(Run = run_name)
+}
+
+```
+
+
+## calculate metrics for all three runs and put it in a table
+```{r}
+# calculate metrics
+validation_metrics_all_runs <- bind_rows(calculate_one_run(Validation_All_1 , "Run 1") ,
+                                         calculate_one_run(Validation_All_2 , "Run 2") ,
+                                         calculate_one_run(Validation_All_3 , "Run 3"))
+
+
+# create the supplementary table
+supplementary_val_table <- validation_metrics_all_runs %>%
+  select(Characteristic , n , Class , Metric , Run , Value) %>%
+  pivot_wider(names_from = Run , values_from = Value) %>%
+  mutate(Mean = rowMeans(across(c("Run 1" , "Run 2" , "Run 3")) , na.rm = TRUE)) %>%
+  mutate(across(c("Run 1" , "Run 2" , "Run 3" , Mean) , ~ round(.x , 3))) %>%
+  arrange(factor(Characteristic , levels = c("Study design" , "Population type" , "Sampling unit")) , Class , Metric)
+
+supplementary_val_table
+
+
+# make the table in publishable style
+separator_rows <- which(supplementary_val_table$Characteristic != lag(supplementary_val_table$Characteristic))
+
+separator_rows <- separator_rows[separator_rows != 1]
+
+supplementary_val_table_flex <- supplementary_val_table %>%
+  mutate(Class = str_to_sentence(Class)) %>%
+  flextable() %>%
+  add_header_row(values = c("" , "" , "", "" , "LLM Validation Run" , "Final") ,
+                 colwidths = c(1 , 1 , 1 , 1 , 3 , 1)) %>%
+  set_header_labels(Characteristic = "Characteristic" , n = "n" , Class = "Class" , Metric = "Metric" ,
+                    `Run 1` = "Run 1" , `Run 2` = "Run 2" , `Run 3` = "Run 3" , Mean = "Mean") %>%
+  merge_v(j = c("Characteristic")) %>%
+  align(j = c("n" , "Run 1" , "Run 2" , "Run 3" , "Mean") , align = "center" , part = "all") %>%
+  bold(j = "Characteristic" , bold = TRUE , part = "body") %>%
+  bold(part = "header") %>%
+  align(align = "center" , part = "header") %>%
+  font(fontname = "Arial" , part = "all") %>%
+  fontsize(size = 10 , part = "body") %>%
+  fontsize(size = 10 , part = "header") %>%
+  theme_booktabs() %>%
+  padding(padding = 4 , part = "all") %>%
+  width(j = "Characteristic" , width = 1.3) %>%
+  width(j = "n" , width = 0.5) %>%
+  width(j = "Class" , width = 1.2) %>%
+  width(j = "Metric" , width = 1.2) %>%
+  width(j = c("Run 1" , "Run 2" , "Run 3" , "Mean") , width = 0.75) %>%
+  border(i = separator_rows , border.top = fp_border(width = 1)) %>%
+  autofit()
+
+supplementary_val_table_flex
+
+save_as_docx(supplementary_val_table_flex , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/supplementary_val_table_FINAL.docx")
+save_as_image(supplementary_val_table_flex , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/supplementary_val_table_FINAL.png")
+
+```
+
+
+# VALIDATION RESULTS FOR MAIN THESIS BODY (TABLES X AND Y)
+## library
+```{r}
+library(tidyverse)
+library(yardstick)
+library(flextable)
+library(officer)
+
+```
+
+## calculate performance metrics
+```{r}
+set.seed(1234)
+
+# first calculate human kappa
+human_kappa_sd <- Validation_All_1 %>%
+  filter(!is.na(jg_1) , !is.na(ob_1)) %>%
+  mutate(jg_1 = factor(jg_1) , ob_1 = factor(ob_1 , levels = levels(jg_1))) %>%
+  summarise(kappa = kap_vec(truth = jg_1 , estimate = ob_1 , weighting = "none")) %>%
+  pull(kappa)
+
+human_kappa_sd
+
+# function for CIs
+# for proportion metrics use Wilson CI
+wilson_ci <- function(successes , total , conf_level = 0.95) {
+  ci <- prop.test(x = successes , n = total , conf.level = conf_level , correct = FALSE)$conf.int
+  c(lower = ci[1] , upper = ci[2])
+}
+
+# for kappa use bootstrap CI
+bootstrap_kappa_ci <- function(truth_factor , estimate_factor , weighting = "none" , R = 2000) {
+  boot_estimates <- replicate(R , {index <- sample(seq_along(truth_factor) , size = length(truth_factor) ,
+                                                   replace = TRUE)
+  kap_vec(truth = truth_factor[index] , estimate = estimate_factor[index] , weighting = weighting)})
+  ci <- quantile(boot_estimates , probs = c(0.025 , 0.975) , na.rm = TRUE)
+  tibble(lower = as.numeric(ci[1]) , upper = as.numeric(ci[2]))
+}
+
+format_estimate_ci <- function(estimate , lower , upper) {
+  sprintf("%.3f (%.3f-%.3f)" , estimate , lower , upper)
+}
+
+
+# human kappa
+human_sd_boot_data <- Validation_All_1 %>%
+  filter(!is.na(jg_1) , !is.na(ob_1)) %>%
+  mutate(jg_1 = factor(jg_1) , ob_1 = factor(ob_1 , levels = levels(jg_1)))
+
+human_kappa_ci <- bootstrap_kappa_ci(truth_factor = human_sd_boot_data$jg_1 , estimate_factor = human_sd_boot_data$ob_1 , weighting = "none" , R = 2000)
+
+human_kappa_results <- tibble(Characteristic = "Study design" , human_kappa = as.numeric(human_kappa_sd) ,
+                              human_kappa_lower = as.numeric(human_kappa_ci$lower) , human_kappa_upper = as.numeric(human_kappa_ci$upper))
+
+# LLM overall performance
+calculate_overall_ci <- function(data , truth_col , pred_col , characteristic_name) {
+  analysis_data <- data %>%
+    filter(!is.na(.data[[truth_col]]))
+  truth <- analysis_data[[truth_col]]
+  estimate <- analysis_data[[pred_col]]
+  n_validation <- length(truth)
+  
+  levels_all <- union(unique(truth) , unique(estimate))
+  truth_factor <- factor(truth , levels = levels_all)
+  estimate_factor <- factor(estimate , levels = levels_all)
+  kappa_ci <- bootstrap_kappa_ci(truth_factor = truth_factor , estimate_factor = estimate_factor , weighting = "none" , R = 2000)
+  
+# accuracy CI
+  correct <- sum(truth == estimate , na.rm = TRUE)
+  accuracy_ci <- wilson_ci(successes = correct , total = n_validation)
+  tibble(Characteristic = characteristic_name ,
+         kappa_lower = kappa_ci$lower , kappa_upper = kappa_ci$upper ,
+         accuracy_lower = accuracy_ci["lower"] , accuracy_upper = accuracy_ci["upper"])
+}
+
+# overall CI
+overall_ci <- bind_rows(calculate_overall_ci(Validation_All_1 , "consensus" , "pred_sd", "Study design") ,
+                        calculate_overall_ci(Validation_All_1 , "population_1_lwc" , "pred_p1" , "Population type") ,
+                        calculate_overall_ci(Validation_All_1 , "population_2_gi" , "pred_p2" , "Sampling unit"))
+
+```
+
+## overall validation performance (table x)
+```{r}
+# calculate run 1 overall performance and make it a table
+table_overall_validation <- validation_metrics_all_runs %>%
+  filter(Run == "Run 1" , Class == "Overall") %>%
+  select(Characteristic , n , Metric , Value) %>%
+  pivot_wider(names_from = Metric , values_from = Value) %>%
+  rename(llm_kappa = `Cohen's kappa` , accuracy = Accuracy) %>%
+  left_join(overall_ci , by = "Characteristic") %>%
+  left_join(human_kappa_results , by = "Characteristic") %>%
+  mutate(`Human interrater Κ (95% CI)` = if_else(is.na(human_kappa) , "N/A" , format_estimate_ci(human_kappa , human_kappa_lower , human_kappa_upper)) ,
+         `LLM Κ (95% CI)` = format_estimate_ci(llm_kappa , kappa_lower , kappa_upper) , 
+         `Accuracy (95% CI)` = format_estimate_ci(accuracy , accuracy_lower , accuracy_upper)) %>%
+  select(Characteristic , n , `Human interrater Κ (95% CI)` , `LLM Κ (95% CI)` , `Accuracy (95% CI)`) %>%
+  arrange(factor(Characteristic , levels = c("Study design" , "Population type" , "Sampling unit")))
+
+
+# make it publishable
+table_overall_validation_flex_ci <- table_overall_validation %>%
+  flextable() %>%
+  theme_booktabs() %>%
+  bold(part = "header") %>%
+  align(j = "Characteristic" , align = "left" , part = "all") %>%
+  align(j = c("n" , "Human interrater Κ (95% CI)" , "LLM Κ (95% CI)" , "Accuracy (95% CI)") , align = "center" , part = "all") %>%
+  font(fontname = "Arial" , part = "all") %>%
+  fontsize(size = 10 , part = "all") %>%
+  padding(padding = 4 , part = "all") %>%
+  autofit()
+
+table_overall_validation_flex_ci
+
+save_as_docx(table_overall_validation_flex_ci , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/table_overall_validation_FINAL.docx")
+save_as_image(table_overall_validation_flex_ci , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/table_overall_validation_FINAL.png")
+
+```
+
+## class-specific classification performance (table y)
+```{r}
+# function for class-specific CI
+calculate_class_ci <- function(data , truth_col , pred_col , characteristic_name) {
+  analysis_data <- data %>%
+    filter(!is.na(.data[[truth_col]]))
+  truth <- analysis_data[[truth_col]]
+  estimate <- analysis_data[[pred_col]]
+  classes <- unique(truth)
+  map_dfr(classes , function(cls) {
+    class_n <- sum(truth == cls , na.rm = TRUE)
+    true_positive <- sum(truth == cls & estimate == cls , na.rm = TRUE)
+    sensitivity_ci <- wilson_ci(successes = true_positive , total = class_n)
+    negative_n <- sum(truth != cls , na.rm = TRUE)
+    true_negative <- sum(truth != cls & estimate != cls , na.rm = TRUE)
+    specificity_ci <- wilson_ci(successes = true_negative , total = negative_n)
+    
+    tibble(Characteristic = characteristic_name , Class = cls , class_n = class_n , sensitivity_lower = sensitivity_ci["lower"] , sensitivity_upper = sensitivity_ci["upper"] ,
+           specificity_lower = specificity_ci["lower"] , specificity_upper = specificity_ci["upper"])
+  })
+}
+
+class_ci <- bind_rows(calculate_class_ci(Validation_All_1 , "consensus" , "pred_sd" , "Study design") ,
+                      calculate_class_ci(Validation_All_1 , "population_1_lwc" , "pred_p1" , "Population type") ,
+                      calculate_class_ci(Validation_All_1 , "population_2_gi" , "pred_p2" , "Sampling unit"))
+
+# make the table
+table_class_validation <- validation_metrics_all_runs %>%
+  filter(Run == "Run 1" , Class != "Overall" , Metric %in% c("Sensitivity" , "Specificity")) %>%
+  select(Characteristic , Class , Metric , Value) %>%
+  pivot_wider(names_from = Metric , values_from = Value) %>%
+  left_join(class_ci , by = c("Characteristic" , "Class")) %>%
+  mutate(`Sensitivity (95% CI)` = format_estimate_ci(Sensitivity , sensitivity_lower , sensitivity_upper) ,
+         `Specificity (95% CI)` = format_estimate_ci(Specificity , specificity_lower , specificity_upper)) %>%
+  select(Characteristic , Class , n = class_n , `Sensitivity (95% CI)` , `Specificity (95% CI)`) %>%
+  arrange(factor(Characteristic , levels = c("Study design" , "Population type" , "Sampling unit")))
+
+# separator lines
+separator_rows <- which(table_class_validation$Characteristic != lag(table_class_validation$Characteristic))
+
+separator_rows <- separator_rows[!is.na(separator_rows)]
+
+# make it publishable
+table_class_validation_flex_ci <- table_class_validation %>%
+  mutate(Class = str_to_sentence(Class)) %>%
+  flextable() %>%
+  merge_v(j = "Characteristic") %>%
+  theme_booktabs() %>%
+  bold(j = "Characteristic" , part = "body") %>%
+  bold(part = "header") %>%
+  align(j = c("Characteristic" , "Class") , align = "left" , part = "all") %>%
+  align(j = c("n" , "Sensitivity (95% CI)" , "Specificity (95% CI)") , align = "center" , part = "all") %>%
+  font(fontname = "Arial" , part = "all") %>%
+  fontsize(size = 10 , part = "all") %>%
+  padding(padding = 4 , part = "all") %>%
+  border(i = separator_rows , border.top = fp_border(width = 1)) %>%
+  autofit()
+
+table_class_validation_flex_ci
+
+save_as_docx(table_class_validation_flex_ci , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/table_class_validation_FINAL.docx")
+save_as_image(table_class_validation_flex_ci , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/table_class_validation_FINAL.png")
+
+```
+
+
+# COUNTS TABLE FOR THREE FULL SCREENING RUNS (TABLE X)
+## library
+```{r}
+library(tidyverse)
+library(flextable)
+library(officer)
+
+```
+
+## make the table
+```{r}
+screening_counts_3_runs <- bind_rows(FullScreening_All %>%
+                                       count(pred_sd , name = "n") %>%
+                                       mutate(percent = n / sum(n) * 100 , Characteristic = "Study design" , Class = pred_sd , Run = "Run 1") %>%
+                                       select(Characteristic , Class , Run , n , percent) ,
+                                     FullScreening_All %>%
+                                       count(pred_p1 , name = "n") %>%
+                                       mutate(percent = n / sum(n) * 100 , Characteristic = "Population type" , Class = pred_p1 , Run = "Run 1") %>%
+                                       select(Characteristic , Class , Run , n , percent) ,
+                                     FullScreening_All %>%
+                                       count(pred_p2 , name = "n") %>%
+                                       mutate(percent = n / sum(n) * 100 , Characteristic = "Sampling unit" , Class = pred_p2 , Run = "Run 1") %>%
+                                       select(Characteristic , Class , Run , n , percent) ,
+                                     
+                                     FullScreening_All_2 %>%
+                                       count(pred_sd , name = "n") %>%
+                                       mutate(percent = n / sum(n) * 100 , Characteristic = "Study design" , Class = pred_sd , Run = "Run 2") %>%
+                                       select(Characteristic , Class , Run , n , percent) ,
+                                     FullScreening_All_2 %>%
+                                       count(pred_p1 , name = "n") %>%
+                                       mutate(percent = n / sum(n) * 100 , Characteristic = "Population type" , Class = pred_p1 , Run = "Run 2") %>%
+                                       select(Characteristic , Class , Run , n , percent) ,
+                                     FullScreening_All_2 %>%
+                                       count(pred_p2 , name = "n") %>%
+                                       mutate(percent = n / sum(n) * 100 , Characteristic = "Sampling unit" , Class = pred_p2 , Run = "Run 2") %>%
+                                       select(Characteristic , Class , Run , n , percent) ,
+                                     
+                                     FullScreening_All_3 %>%
+                                       count(pred_sd , name = "n") %>%
+                                       mutate(percent = n / sum(n) * 100 , Characteristic = "Study design" , Class = pred_sd , Run = "Run 3") %>%
+                                       select(Characteristic , Class , Run , n , percent) ,
+                                     FullScreening_All_3 %>%
+                                       count(pred_p1 , name = "n") %>%
+                                       mutate(percent = n / sum(n) * 100 , Characteristic = "Population type" , Class = pred_p1 , Run = "Run 3") %>%
+                                       select(Characteristic , Class , Run , n , percent) ,
+                                     FullScreening_All_3 %>%
+                                       count(pred_p2 , name = "n") %>%
+                                       mutate(percent = n / sum(n) * 100 , Characteristic = "Sampling unit" , Class = pred_p2 , Run = "Run 3") %>%
+                                       select(Characteristic , Class , Run , n , percent))
+
+screening_counts_table <- screening_counts_3_runs %>%
+  mutate(value = paste0(n , " (" , round(percent , 1) , "%)")) %>%
+  select(Characteristic , Class , Run , value) %>%
+  pivot_wider(names_from = Run , values_from = value) %>%
+  arrange(factor(Characteristic , levels = c("Study design" , "Population type" , "Sampling unit")))
+
+# add separator rows
+separator_rows <- which(screening_counts_table$Characteristic != lag(screening_counts_table$Characteristic))
+
+separator_rows <- separator_rows[!is.na(separator_rows)]
+
+# make it publishable
+screening_counts_table_flex <- screening_counts_table %>%
+  mutate(Class = str_to_sentence(Class)) %>%
+  flextable() %>%
+  add_header_row(values = c("" , "" , "Full Screening LLM Classification") ,
+                 colwidths = c(1 , 1 , 3)) %>%
+  set_header_labels(Characteristic = "Characteristic" , Class = "Class" ,
+                    `Run 1` = "Run 1, n (%)" ,
+                    `Run 2` = "Run 2, n (%)" ,
+                    `Run 3` = "Run 3, n (%)") %>%
+  merge_v(j = "Characteristic") %>%
+  bold(j = "Characteristic" , part = "body") %>%
+  bold(part = "header") %>%
+  align(j = c("Characteristic" , "Class") , align = "left" , part = "all") %>%
+  align(j = c("Run 1" , "Run 2" , "Run 3") , align = "center" , part = "all") %>%
+  align(align = "center" , part = "header") %>%
+  font(fontname = "Arial" , part = "all") %>%
+  fontsize(size = 10 , part = "all") %>%
+  theme_booktabs() %>%
+  padding(padding = 4 , part = "all") %>%
+  border(i = separator_rows , border.top = fp_border(width = 1)) %>%
+  autofit()
+
+screening_counts_table_flex
+
+save_as_docx(screening_counts_table_flex , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/supplementary_screening_counts_table_FINAL.docx")
+save_as_image(screening_counts_table_flex , path = "C:/Users/jacob/OneDrive/Desktop/Tables and Figures/supplementary_screening_counts_table_FINAL.png")
+  
+```
+
+
+# CITATIONS
+```{r}
+packages <- c("tidyverse" , "yardstick" , "ggalluvial" , "ggh4x" , "flextable" , "scales" , "officer")
+
+all_citations <- c(list(citation()) , lapply(packages, citation))
+
+bib_entries <- unlist(lapply(all_citations , function(x) {as.character(toBibtex(x))}))
+
+writeLines(bib_entries , file.path(path.expand("~/") , "R_Citations.bib"))
+
+```
+
